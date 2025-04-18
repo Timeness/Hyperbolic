@@ -2,34 +2,32 @@ import { Bot } from "grammy";
 import fs from "fs";
 import axios from "axios";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const bot = new Bot(process.env.BOT_TOKEN);
 const ownerId = "7875591067";
 const questions = JSON.parse(fs.readFileSync("question.json", "utf-8"));
-let userData = loadData();
+
+let userData = {};
+let approvedUsers = [];
 let runningUsers = {};
-let approvedUsers = loadApproved();
 let botStartTime = Date.now();
 
-function loadData() {
-  try {
-    return JSON.parse(fs.readFileSync("data.json", "utf-8"));
-  } catch {
-    return {};
-  }
+try {
+  userData = JSON.parse(fs.readFileSync("data.json", "utf-8"));
+} catch {
+  userData = {};
+}
+
+try {
+  approvedUsers = JSON.parse(fs.readFileSync("approved.json", "utf-8"));
+} catch {
+  approvedUsers = [];
 }
 
 function saveData() {
   fs.writeFileSync("data.json", JSON.stringify(userData, null, 2));
-}
-
-function loadApproved() {
-  try {
-    return JSON.parse(fs.readFileSync("approved.json", "utf-8"));
-  } catch {
-    return [];
-  }
 }
 
 function saveApproved() {
@@ -50,8 +48,9 @@ async function sendChatRequest(apiKey, question) {
         Authorization: `Bearer ${apiKey}`
       }
     });
-    return res.data.choices[0].message.content;
-  } catch {
+    return res.data.choices?.[0]?.message?.content || null;
+  } catch (err) {
+    console.error("API Error:", err.message);
     return null;
   }
 }
@@ -74,15 +73,15 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("help", async (ctx) => {
-  const userId = ctx.from?.id.toString() || "";
+  const userId = ctx.from?.id.toString();
   if (runningUsers[userId]?.running) return ctx.reply("Node running. Only /node stop or /node stats allowed.");
   await ctx.reply("Commands :\n/node_key {API Key} - Add Hyperbolic AI Key\n/node run - Run your Hyperbolic AI Node\n/node stop - Stop your Running Node\n/node stats - Check your Hyperbolic Node stats\n\n/help - See again");
 });
 
 bot.command("node_key", async (ctx) => {
-  const userId = ctx.from?.id.toString() || "";
+  const userId = ctx.from?.id.toString();
   const args = ctx.message?.text?.split(" ");
-  if (!args || args.length < 2) return ctx.reply("Usage: /node_key <API_KEY>");
+  if (!args || args.length < 2) return ctx.reply("Usage: /node_key {API_KEY}");
   if (userData[userId]) return ctx.reply("Key already added. Contact owner to reset.");
   if (!approvedUsers.includes(userId)) return ctx.reply("You are not approved to run a node. Contact owner.");
   userData[userId] = args[1];
@@ -91,7 +90,7 @@ bot.command("node_key", async (ctx) => {
 });
 
 bot.command("node", async (ctx) => {
-  const userId = ctx.from?.id.toString() || "";
+  const userId = ctx.from?.id.toString();
   const args = ctx.message?.text?.split(" ");
   const sub = args[1];
 
@@ -126,30 +125,41 @@ bot.command("node", async (ctx) => {
 });
 
 bot.command("stats", async (ctx) => {
-  const id = ctx.from?.id.toString() || "";
+  const id = ctx.from?.id.toString();
   if (id !== ownerId) return;
+
   const totalUsers = Object.keys(userData).length;
   const running = Object.values(runningUsers).filter(x => x.running).length;
   const offline = approvedUsers.filter(uid => !runningUsers[uid]?.running).length;
   const uptime = formatUptime(Date.now() - botStartTime);
   const totalSent = Object.values(runningUsers).reduce((acc, x) => acc + x.count, 0);
+
   await ctx.reply(
-`\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u26C5\uFE0F Hyperbolic AI Node [None:0:2025]\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nUsers : ${totalUsers}\nRunning Nodes : ${running}\nOffline Nodes : ${offline}\nKey Added Users : ${totalUsers}\nHyperbolic Uptime : ${uptime}\nTotal Questions Sent : ${totalSent}\n\nHyperbolic Running Smoothly !`);
+`\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u26C5\uFE0F Hyperbolic AI Node [None:0:2025]\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n
+Users : ${totalUsers}
+Running Nodes : ${running}
+Offline Nodes : ${offline}
+Key Added Users : ${totalUsers}
+Hyperbolic Uptime : ${uptime}
+Total Questions Sent : ${totalSent}
+\nHyperbolic Running Smoothly!`);
 });
 
 bot.command("add_node", async (ctx) => {
-  const id = ctx.from?.id.toString() || "";
+  const id = ctx.from?.id.toString();
   const args = ctx.message?.text?.split(" ");
   if (id !== ownerId || !args[1]) return;
   if (!approvedUsers.includes(args[1])) {
     approvedUsers.push(args[1]);
     saveApproved();
     await ctx.reply(`Approved ${args[1]} to run node.`);
-  } else await ctx.reply(`Already approved.`);
+  } else {
+    await ctx.reply(`Already approved.`);
+  }
 });
 
 bot.command("reset", async (ctx) => {
-  const id = ctx.from?.id.toString() || "";
+  const id = ctx.from?.id.toString();
   const args = ctx.message?.text?.split(" ");
   if (id !== ownerId || !args[1]) return;
   delete userData[args[1]];
@@ -169,7 +179,7 @@ function formatUptime(ms) {
 }
 
 bot.on("message", async (ctx) => {
-  const userId = ctx.from?.id.toString() || "";
+  const userId = ctx.from?.id.toString();
   const msg = ctx.message?.text || "";
   if (msg.startsWith("/node") && runningUsers[userId]?.running) {
     if (!msg.includes("stats") && !msg.includes("stop")) {
