@@ -238,8 +238,7 @@ bot.command("start", async (ctx) => {
     const gift = createGift(chance < 0.8 ? "easy" : "medium");
     addGiftToUser(id, gift);
     ctx.reply(
-      `🎁 Welcome, ${ctx.from.first_name}! You received a gift ID:\n\n🔐 \`${gift.id}\`\nUse /claim <gift_code> in the group to claim.`,
-      { parse_mode: "Markdown" }
+      `🎁 Welcome, ${ctx.from.first_name}! You received a gift ID:\n\n🔐 ${gift.id}\nUse /claim <gift_code> in the group to claim.`
     );
   } else {
     ctx.reply("You've already started and received your free gift.");
@@ -249,9 +248,7 @@ bot.command("start", async (ctx) => {
 bot.command("ref", async (ctx) => {
   const id = ctx.from.id;
   const code = `ref${id}`;
-  ctx.reply(
-    `🔗 Your referral link: https://t.me/${ctx.me.username}?start=${code}`
-  );
+  ctx.reply(`🔗 Your referral link: https://t.me/${ctx.me.username}?start=${code}`);
 });
 
 bot.command("leaderboard", async (ctx) => {
@@ -260,9 +257,9 @@ bot.command("leaderboard", async (ctx) => {
     .slice(0, 10);
   let msg = "🏆 Referral Leaderboard:\n\n";
   sorted.forEach(([uid, data], i) => {
-    msg += `${i + 1}. [User](tg://user?id=${uid}) - ${data.referrals.length} referrals\n`;
+    msg += `${i + 1}. User ID ${uid} - ${data.referrals.length} referrals\n`;
   });
-  ctx.reply(msg, { parse_mode: "Markdown" });
+  ctx.reply(msg);
 });
 
 bot.command("xpleaderboard", async (ctx) => {
@@ -271,9 +268,9 @@ bot.command("xpleaderboard", async (ctx) => {
     .slice(0, 10);
   let msg = "⚡ XP Leaderboard:\n\n";
   sorted.forEach(([uid, data], i) => {
-    msg += `${i + 1}. [User](tg://user?id=${uid}) - ${data.xp} XP\n`;
+    msg += `${i + 1}. User ID ${uid} - ${data.xp} XP\n`;
   });
-  ctx.reply(msg, { parse_mode: "Markdown" });
+  ctx.reply(msg);
 });
 
 bot.command("profile", (ctx) => {
@@ -301,8 +298,7 @@ bot.command("claim", async (ctx) => {
   await ctx.replyWithChatAction("typing");
   setTimeout(() => {
     ctx.reply(
-      `🎉 Congrats, [${ctx.from.first_name}](tg://user?id=${uid})!\n\n💰 You claimed: ${gift.prize} PD\n🔥 Difficulty: ${gift.difficulty}`,
-      { parse_mode: "Markdown" }
+      `🎉 Congrats, ${ctx.from.first_name}!\n\n💰 You claimed: ${gift.prize} PD\n🔥 Difficulty: ${gift.difficulty}`
     );
   }, 1000);
 });
