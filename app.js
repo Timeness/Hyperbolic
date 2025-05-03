@@ -354,6 +354,81 @@ bot.command("done", async (ctx) => {
   ctx.reply(`✅ Task marked as done. +${reward} XP`);
 });
 
+bot.command("addgift", async (ctx) => {
+  if (ctx.from.id !== 5896960462) return;
+  const parts = ctx.message.text.split(" ")[1];
+  if (!parts) return ctx.reply("❗ Format: /addgift min-max/type/userid");
+
+  const [range, type, userIdStr] = parts.split("/");
+  const [min, max] = range.split("-").map(Number);
+  const userId = parseInt(userIdStr);
+
+  if (!users[userId]) return ctx.reply("❌ User has not started yet.");
+
+  let prize =
+    type === "random"
+      ? Math.floor(100 + Math.random() * 9900)
+      : type === "medium"
+      ? Math.floor(20000 + Math.random() * 30000)
+      : type === "rare"
+      ? Math.floor(50000 + Math.random() * 50000)
+      : type === "surpriseical"
+      ? Math.floor(min + Math.random() * (max - min))
+      : Math.floor(100 + Math.random() * 9900);
+
+  const difficulty =
+    prize < 20000
+      ? "🟢 Easy"
+      : prize < 50000
+      ? "🟡 Medium"
+      : "🔴 Rare";
+
+  const gift = {
+    id: generateGiftCode(),
+    prize,
+    difficulty,
+    claimed: false,
+    type,
+  };
+
+  addGiftToUser(userId, gift);
+  ctx.reply(
+    `✅ Gift added to user ${userId}\nCode: \`${gift.id}\`\nPrize: ${gift.prize} PD\nType: ${type}\nDifficulty: ${difficulty}`,
+    { parse_mode: "Markdown" }
+  );
+});
+
+bot.command("mygifts", (ctx) => {
+  const u = users[ctx.from.id];
+  if (!u || u.gifts.length === 0) return ctx.reply("No gifts found.");
+  let msg = `🎁 Your Gifts:\n\n`;
+  u.gifts.forEach((g, i) => {
+    msg += `${i + 1}. ${g.id} - ${g.claimed ? "✅ Claimed" : "❗ Unclaimed"} - ${g.prize} PD - ${g.type}\n`;
+  });
+  ctx.reply(msg);
+});
+
+bot.command("helpme", (ctx) => {
+  ctx.reply(
+    `📖 Available Commands:
+
+/start - Start & get welcome gift
+/ref - Your referral link
+/claim <code> - Claim a gift
+/profile - Your profile
+/daily - Claim daily XP
+/tasks - View current tasks
+/done - Mark task done & earn XP
+/mygifts - See your gifts
+/helpme - View help menu
+
+(Admin only)
+/addgift min-max/type/userid - Add gift manually
+/broadcast msg - Send broadcast
+/addtask task - Add a task`
+  );
+});
+
 bot.command("deletegift", async (ctx) => {
   const [_, code] = ctx.message.text.split(" ");
   const id = ctx.from.id;
