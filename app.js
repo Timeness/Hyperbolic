@@ -190,8 +190,7 @@ bot.on("message", async (ctx) => {
 });
 
 bot.start();
-*/
-
+**/
 
 
 import { Bot } from "grammy";
